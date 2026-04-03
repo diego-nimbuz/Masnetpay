@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .sidebar { height: 100vh; background: #2c3e50; color: white; position: fixed; width: 240px; z-index: 1000; transition: all 0.3s; }
+        .sidebar a { color: white; text-decoration: none; padding: 15px; display: block; }
+        .sidebar a:hover { background: #34495e; }
+        .main-content { margin-left: 240px; padding: 30px; transition: all 0.3s; }
+        .card { border: none; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); margin-bottom: 20px; }
+        .logo-container { padding: 25px 15px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; }
+        .sidebar-logo { max-width: 100%; height: auto; max-height: 80px; object-fit: contain; border-radius: 4px; }
+        
+        /* Ajustes Responsivos */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; height: auto; position: relative; }
+            .main-content { margin-left: 0; padding: 15px; }
+            .h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 sidebar">
+                <div class="position-sticky pt-3">
+                    <div class="logo-container">
+                        <img src="/img/logo.png" alt="MASNET Logo" class="sidebar-logo">
+                    </div>
+                    <a href="/">Panel de Control</a>
+                    <a href="/customers">Clientes</a>
+                    <a href="/logs">Historial de Envíos</a>
+                    <a href="/billing">Cobranza</a>
+                    <a href="/packages">Paquetes</a>
+                    <a href="/settings">Configuración</a>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="main-content col-md-10">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="h3 mb-0">Configuración de Mensajes</h1>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <form action="/save-settings" method="POST">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Plantilla Pronto Pago</label>
+                                <textarea name="template_pronto_pago" class="form-control" rows="3"><%= settings.template_pronto_pago %></textarea>
+                                <small class="text-muted">Usa {name} para el nombre y {amount} para el monto de pronto pago.</small>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Plantilla Pago Normal</label>
+                                <textarea name="template_pago_normal" class="form-control" rows="3"><%= settings.template_pago_normal %></textarea>
+                                <small class="text-muted">Usa {name} para el nombre y {amount} para el monto de pago normal.</small>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Plantilla Corte de Servicio</label>
+                                <textarea name="template_corte_servicio" class="form-control" rows="3"><%= settings.template_corte_servicio %></textarea>
+                                <small class="text-muted">Usa {name} para el nombre y {amount} para el monto de corte.</small>
+                            </div>
+
+                            <hr class="my-4">
+                            <h5 class="mb-3">Configuración de Agradecimiento</h5>
+
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" name="enable_thank_you" id="enableThankYou" value="true" <%= settings.enable_thank_you === 'true' ? 'checked' : '' %>>
+                                <label class="form-check-label" for="enableThankYou">Enviar mensaje de agradecimiento automáticamente al registrar un pago</label>
+                            </div>
+
+                            <div id="thankYouTemplateSection" style="<%= settings.enable_thank_you === 'true' ? '' : 'display: none;' %>">
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Plantilla de Agradecimiento por Pago</label>
+                                    <textarea name="template_thank_you" class="form-control" rows="3"><%= settings.template_thank_you %></textarea>
+                                    <small class="text-muted">Usa {name} para el nombre, {amount} para el monto pagado y {type} para el tipo de pago.</small>
+                                </div>
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Guardar Configuración</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('enableThankYou').addEventListener('change', function() {
+            const section = document.getElementById('thankYouTemplateSection');
+            section.style.display = this.checked ? '' : 'none';
+        });
+    </script>
+</body>
+</html>

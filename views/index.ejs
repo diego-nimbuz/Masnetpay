@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .sidebar { height: 100vh; background: #2c3e50; color: white; position: fixed; width: 240px; z-index: 1000; transition: all 0.3s; }
+        .sidebar a { color: white; text-decoration: none; padding: 15px; display: block; }
+        .sidebar a:hover { background: #34495e; }
+        .main-content { margin-left: 240px; padding: 30px; transition: all 0.3s; }
+        .card { border: none; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); margin-bottom: 20px; }
+        .status-badge { font-size: 0.8rem; }
+        .logo-container { padding: 25px 15px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; }
+        .sidebar-logo { max-width: 100%; height: auto; max-height: 80px; object-fit: contain; border-radius: 4px; }
+        
+        /* Ajustes Responsivos */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; height: auto; position: relative; }
+            .main-content { margin-left: 0; padding: 15px; }
+            .logo-container { padding: 15px; }
+            .h2 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 sidebar">
+                <div class="position-sticky pt-3">
+                    <div class="logo-container">
+                        <img src="/img/logo.png" alt="MASNET Logo" class="sidebar-logo">
+                    </div>
+                    <a href="/">Panel de Control</a>
+                    <a href="/customers">Clientes</a>
+                    <a href="/logs">Historial de Envíos</a>
+                    <a href="/billing">Cobranza</a>
+                    <a href="/packages">Paquetes</a>
+                    <a href="/settings">Configuración</a>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-10 main-content">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Panel de Control</h1>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="text-muted small">Fecha y hora: <strong><%= fDateTime(now) %></strong></div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.location.reload()">Sincronizar</button>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row">
+                    <div class="col-md-3 col-6">
+                        <div class="card text-center p-3">
+                            <h6 class="text-muted">Total Clientes</h6>
+                            <h2 class="text-primary"><%= stats.totalCustomers %></h2>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="card text-center p-3">
+                            <h6 class="text-muted">Recaudado (Mes Actual)</h6>
+                            <h2 class="text-success">$<%= stats.totalCollected.toFixed(2) %></h2>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="card text-center p-3">
+                            <h6 class="text-muted">Mensajes Enviados</h6>
+                            <h2 class="text-success"><%= stats.sentMessages %></h2>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="card text-center p-3">
+                            <h6 class="text-muted">Mensajes Fallidos</h6>
+                            <h2 class="text-danger"><%= stats.failedMessages %></h2>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card mt-4">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Últimos Envíos</h5>
+                        <a href="/report-pdf" class="btn btn-sm btn-success">Reporte PDF</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha y Hora</th>
+                                        <th>Cliente</th>
+                                        <th>Paquete</th>
+                                        <th>Tipo</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% logs.slice(0, 10).forEach(log => { %>
+                                        <tr>
+                                            <td><%= fDateTime(log.sent_at) %></td>
+                                            <td><%= log.customer_name %></td>
+                                            <td><%= log.package_name || '—' %></td>
+                                            <td><%= log.type %></td>
+                                            <td>
+                                                <span class="badge status-badge <%= log.status === 'Enviado' ? 'bg-success' : 'bg-danger' %>">
+                                                    <%= log.status %>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

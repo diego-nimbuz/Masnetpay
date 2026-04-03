@@ -1,0 +1,21 @@
+{
+  "name": "whatsapp-sql-reminder",
+  "version": "1.0.0",
+  "description": "Sistema de gestión de clientes y recordatorios de pago por WhatsApp con SQLite",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "body-parser": "^2.2.2",
+    "ejs": "^5.0.1",
+    "express": "^5.2.1",
+    "moment": "^2.30.1",
+    "node-cron": "^3.0.3",
+    "pdfkit": "^0.18.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "sqlite3": "^5.1.6",
+    "whatsapp-web.js": "^1.23.0"
+  }
+}

@@ -1,0 +1,30 @@
+# Node dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# WhatsApp sessions (Ephemeral)
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Binaries
+sqlite3.exe
+sqlite3_analyzer.exe
+sqlite3_rsync.exe
+sqldiff.exe
+
+# Environment variables
+.env
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

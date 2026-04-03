@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .sidebar { height: 100vh; background: #2c3e50; color: white; position: fixed; width: 240px; z-index: 1000; transition: all 0.3s; }
+        .sidebar a { color: white; text-decoration: none; padding: 15px; display: block; }
+        .sidebar a:hover { background: #34495e; }
+        .main-content { margin-left: 240px; padding: 30px; transition: all 0.3s; }
+        .card { border: none; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); margin-bottom: 20px; }
+        .logo-container { padding: 25px 15px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; }
+        .sidebar-logo { max-width: 100%; height: auto; max-height: 80px; object-fit: contain; border-radius: 4px; }
+        .sort-icon { cursor: pointer; margin-left: 5px; color: #ccc; }
+        .sort-icon.active { color: #0d6efd; }
+        
+        /* Ajustes Responsivos */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; height: auto; position: relative; }
+            .main-content { margin-left: 0; padding: 15px; }
+            .h3 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 sidebar">
+                <div class="position-sticky pt-3">
+                    <div class="logo-container">
+                        <img src="/img/logo.png" alt="MASNET Logo" class="sidebar-logo">
+                    </div>
+                    <a href="/">Panel de Control</a>
+                    <a href="/customers">Clientes</a>
+                    <a href="/logs">Historial de Envíos</a>
+                    <a href="/billing">Cobranza</a>
+                    <a href="/packages">Paquetes</a>
+                    <a href="/settings">Configuración</a>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="main-content col-md-10">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <h1 class="h3 mb-0">Historial de Envíos</h1>
+                    <div class="d-flex gap-2">
+                        <a href="/report-pdf" class="btn btn-success">Descargar PDF</a>
+                        <a href="/report-csv" class="btn btn-primary">Descargar Excel</a>
+                        <form action="/logs/clear" method="POST" onsubmit="return confirm('¿Seguro que deseas borrar todo el historial? Esta acción no se puede deshacer.');">
+                            <button type="submit" class="btn btn-danger">Borrar historial</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0" id="logsTable">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th data-sort="0">Fecha y Hora <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                        <th data-sort="1">Cliente <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                        <th data-sort="2">Paquete <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                        <th data-sort="3">Tipo <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                        <th>Mensaje</th>
+                                        <th data-sort="5">Estado <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% logs.forEach(log => { %>
+                                        <tr>
+                                            <td data-sort-value="<%= log.sent_at %>"><%= fDateTime(log.sent_at) %></td>
+                                            <td class="fw-bold"><%= log.customer_name %></td>
+                                            <td><%= log.package_name || '—' %></td>
+                                            <td><%= log.type %></td>
+                                            <td class="text-truncate" style="max-width: 300px;"><%= log.message %></td>
+                                            <td data-sort-value="<%= log.status === 'Enviado' ? 1 : 0 %>">
+                                                <span class="badge <%= log.status === 'Enviado' ? 'bg-success' : 'bg-danger' %>">
+                                                    <%= log.status %>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function enableTableSorting(table) {
+            const headers = table.querySelectorAll('th[data-sort]');
+            headers.forEach(header => {
+                header.addEventListener('click', () => {
+                    const tbody = table.querySelector('tbody');
+                    const index = Number(header.getAttribute('data-sort'));
+                    const currentDir = header.getAttribute('data-sort-dir') || 'desc';
+                    const nextDir = currentDir === 'asc' ? 'desc' : 'asc';
+
+                    table.querySelectorAll('th').forEach(th => {
+                        th.classList.remove('sort-asc', 'sort-desc');
+                        th.removeAttribute('data-sort-dir');
+                        const icon = th.querySelector('.sort-icon');
+                        if (icon) icon.classList.remove('active');
+                    });
+
+                    header.setAttribute('data-sort-dir', nextDir);
+                    header.classList.add(nextDir === 'asc' ? 'sort-asc' : 'sort-desc');
+                    const activeIcon = header.querySelector('.sort-icon');
+                    if (activeIcon) activeIcon.classList.add('active');
+
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+                    const sortedRows = rows.sort((a, b) => {
+                        const aCell = a.cells[index];
+                        const bCell = b.cells[index];
+                        const aRaw = aCell?.getAttribute('data-sort-value') ?? aCell?.textContent ?? '';
+                        const bRaw = bCell?.getAttribute('data-sort-value') ?? bCell?.textContent ?? '';
+                        const aText = String(aRaw).trim();
+                        const bText = String(bRaw).trim();
+
+                        const aIso = /^\d{4}-\d{2}-\d{2}(?:[ T].*)?$/.test(aText) ? Date.parse(aText.includes('T') ? aText : `${aText.replace(' ', 'T')}`) : NaN;
+                        const bIso = /^\d{4}-\d{2}-\d{2}(?:[ T].*)?$/.test(bText) ? Date.parse(bText.includes('T') ? bText : `${bText.replace(' ', 'T')}`) : NaN;
+                        if (!Number.isNaN(aIso) && !Number.isNaN(bIso)) {
+                            return nextDir === 'asc' ? aIso - bIso : bIso - aIso;
+                        }
+
+                        const aNum = Number(aText);
+                        const bNum = Number(bText);
+                        if (Number.isFinite(aNum) && Number.isFinite(bNum)) {
+                            return nextDir === 'asc' ? aNum - bNum : bNum - aNum;
+                        }
+
+                        return nextDir === 'asc'
+                            ? aText.localeCompare(bText, 'es', { numeric: true, sensitivity: 'base' })
+                            : bText.localeCompare(aText, 'es', { numeric: true, sensitivity: 'base' });
+                    });
+
+                    tbody.append(...sortedRows);
+                });
+            });
+        }
+
+        const logsTable = document.getElementById('logsTable');
+        if (logsTable) enableTableSorting(logsTable);
+    </script>
+</body>
+</html>

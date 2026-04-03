@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .sidebar { height: 100vh; background: #2c3e50; color: white; position: fixed; width: 240px; z-index: 1000; transition: all 0.3s; }
+        .sidebar a { color: white; text-decoration: none; padding: 15px; display: block; }
+        .sidebar a:hover { background: #34495e; }
+        .main-content { margin-left: 240px; padding: 30px; transition: all 0.3s; }
+        .card { border: none; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); margin-bottom: 20px; }
+        .sort-icon { cursor: pointer; margin-left: 5px; color: #ccc; }
+        .sort-icon.active { color: #0d6efd; }
+        .logo-container { padding: 25px 15px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; }
+        .sidebar-logo { max-width: 100%; height: auto; max-height: 80px; object-fit: contain; border-radius: 4px; }
+        .table-responsive { overflow-x: auto; overflow-y: visible; }
+        .dropdown-menu { z-index: 2000; }
+        
+        /* Ajustes Responsivos */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; height: auto; position: relative; }
+            .main-content { margin-left: 0; padding: 15px; }
+            .h3 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 sidebar">
+                <div class="position-sticky pt-3">
+                    <div class="logo-container">
+                        <img src="/img/logo.png" alt="MASNET Logo" class="sidebar-logo">
+                    </div>
+                    <a href="/">Panel de Control</a>
+                    <a href="/customers">Clientes</a>
+                    <a href="/logs">Historial de Envíos</a>
+                    <a href="/billing">Cobranza</a>
+                    <a href="/packages">Paquetes</a>
+                    <a href="/settings">Configuración</a>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="main-content col-md-10">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <h1 class="h3">Gestión de Clientes</h1>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+                        Agregar Cliente
+                    </button>
+                </div>
+                <% if (typeof notice !== 'undefined' && notice) { %>
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        El cliente tiene Auto apagado. No se envió el mensaje y se registró como no enviado.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <% } %>
+
+                <!-- Barra de Búsqueda -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" id="searchInput" class="form-control" placeholder="Buscar por nombre o número de suscriptor...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0" id="customersTable">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th data-sort="0">Suscriptor <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                        <th data-sort="1">Nombre <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                        <th>Teléfono</th>
+                                        <th data-sort="3">Paquete <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                        <th data-sort="4">Pronto Pago (Inicio) <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                        <th data-sort="5">Pago Normal <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                        <th data-sort="6">Corte <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                        <th class="text-center" data-sort="7">Auto <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% customers.forEach(customer => { %>
+                                        <tr>
+                                            <td><%= customer.subscriber_number || 'N/A' %></td>
+                                            <td class="fw-bold"><%= customer.name %></td>
+                                            <td><%= customer.phone %></td>
+                                            <td><%= customer.package_name || 'Sin paquete' %></td>
+                                            <td data-sort-value="<%= customer.early_pay_date %>"><%= fDate(customer.early_pay_date) %></td>
+                                            <td data-sort-value="<%= customer.normal_pay_date %>"><%= fDate(customer.normal_pay_date) %></td>
+                                            <td data-sort-value="<%= customer.service_cut_date %>"><%= fDate(customer.service_cut_date) %></td>
+                                            <td class="text-center" data-sort-value="<%= (customer.send_notifications === 0 || customer.send_notifications === '0') ? '0' : '1' %>">
+                                                <div class="form-check form-switch d-inline-block">
+                                                    <input class="form-check-input toggle-auto" type="checkbox" role="switch" <%= (customer.send_notifications === 0 || customer.send_notifications === '0') ? '' : 'checked' %> data-id="<%= customer.id %>">
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <div class="dropdown d-inline">
+                                                        <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" data-bs-boundary="viewport">
+                                                            Enviar Notif.
+                                                        </button>
+                                                        <ul class="dropdown-menu dropdown-menu-end">
+                                                            <li><form action="/send-manual/<%= customer.id %>/Pronto Pago" method="POST"><button type="submit" class="dropdown-item">Pronto Pago</button></form></li>
+                                                            <li><form action="/send-manual/<%= customer.id %>/Pago Normal" method="POST"><button type="submit" class="dropdown-item">Pago Normal</button></form></li>
+                                                            <li><form action="/send-manual/<%= customer.id %>/Corte de Servicio" method="POST"><button type="submit" class="dropdown-item">Corte de Servicio</button></form></li>
+                                                        </ul>
+                                                    </div>
+                                                    <button class="btn btn-sm btn-outline-primary edit-btn" data-id="<%= customer.id %>" data-bs-toggle="modal" data-bs-target="#editCustomerModal">
+                                                        Editar
+                                                    </button>
+                                                    <form action="/delete-customer/<%= customer.id %>" method="POST" class="d-inline">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro?')">Eliminar</button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal Agregar Cliente -->
+    <div class="modal fade" id="addCustomerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="/add-customer" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Nuevo Cliente</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Número de Suscriptor</label>
+                            <input type="text" name="subscriber_number" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nombre Completo</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Teléfono (ej: 524433001689)</label>
+                            <input type="text" name="phone" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha de Pronto Pago (Inicio)</label>
+                            <input type="date" name="early_pay_date" class="form-control" required>
+                            <small class="text-muted">El sistema sumará 4 días para Pago Normal y 5 días para el Corte automáticamente.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Día Original de Pago (1-31)</label>
+                            <input type="number" name="preferred_payment_day" class="form-control" min="1" max="31" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Paquete</label>
+                            <select name="package_id" id="add_package_select" class="form-select" required>
+                                <option value="" selected disabled>Elegir paquete...</option>
+                            </select>
+                            <small class="text-muted">Al seleccionar, los montos se rellenan automáticamente.</small>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" name="send_notifications" id="add_send_notifications" value="1" checked>
+                            <label class="form-check-label" for="add_send_notifications">Enviar mensajes de WhatsApp programados</label>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Monto Pronto Pago</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" name="early_pay_amount" class="form-control" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Monto Pago Normal</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" name="normal_pay_amount" class="form-control" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Monto Corte</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" name="service_cut_amount" class="form-control" placeholder="0.00">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Cliente</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Cliente -->
+    <div class="modal fade" id="editCustomerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="editForm" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Editar Cliente</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Número de Suscriptor</label>
+                            <input type="text" name="subscriber_number" id="edit_subscriber" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nombre Completo</label>
+                            <input type="text" name="name" id="edit_name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Teléfono</label>
+                            <input type="text" name="phone" id="edit_phone" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha de Pronto Pago (Inicio)</label>
+                            <input type="date" name="early_pay_date" id="edit_early_pay" class="form-control" required>
+                            <small class="text-muted">El sistema recalculará el Pago Normal (+4 días) y Corte (+5 días).</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Día Original de Pago (1-31)</label>
+                            <input type="number" name="preferred_payment_day" id="edit_preferred_payment_day" class="form-control" min="1" max="31" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Paquete</label>
+                            <select name="package_id" id="edit_package_select" class="form-select" required>
+                                <option value="" disabled>Elegir paquete...</option>
+                            </select>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" name="send_notifications" id="edit_send_notifications" value="1">
+                            <label class="form-check-label" for="edit_send_notifications">Enviar mensajes de WhatsApp programados</label>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Monto Pronto Pago</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" name="early_pay_amount" id="edit_early_pay_amount" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Monto Pago Normal</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" name="normal_pay_amount" id="edit_normal_pay_amount" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Monto Corte</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" name="service_cut_amount" id="edit_service_cut_amount" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function loadPackages() {
+            try {
+                const res = await fetch('/packages/json');
+                const packages = await res.json();
+                const addSelect = document.getElementById('add_package_select');
+                const editSelect = document.getElementById('edit_package_select');
+                [addSelect, editSelect].forEach(sel => {
+                    if (!sel) return;
+                    while (sel.options.length > 1) sel.remove(1);
+                    packages.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.id;
+                        opt.textContent = `${p.name} — $${Number(p.early_pay_amount).toFixed(2)} / $${Number(p.normal_pay_amount).toFixed(2)} / $${Number(p.service_cut_amount).toFixed(2)}`;
+                        opt.setAttribute('data-early', p.early_pay_amount);
+                        opt.setAttribute('data-normal', p.normal_pay_amount);
+                        opt.setAttribute('data-cut', p.service_cut_amount);
+                        sel.appendChild(opt);
+                    });
+                });
+            } catch (e) {}
+        }
+        function applyPackageToAdd() {
+            const sel = document.getElementById('add_package_select');
+            const opt = sel.options[sel.selectedIndex];
+            if (!opt || !opt.value) return;
+            const early = parseFloat(opt.getAttribute('data-early') || '0');
+            const normal = parseFloat(opt.getAttribute('data-normal') || '0');
+            const cut = parseFloat(opt.getAttribute('data-cut') || '0');
+            const form = sel.closest('form');
+            form.querySelector('input[name="early_pay_amount"]').value = early.toFixed(2);
+            form.querySelector('input[name="normal_pay_amount"]').value = normal.toFixed(2);
+            form.querySelector('input[name="service_cut_amount"]').value = cut.toFixed(2);
+        }
+        function applyPackageToEdit() {
+            const sel = document.getElementById('edit_package_select');
+            const opt = sel.options[sel.selectedIndex];
+            if (!opt || !opt.value) return;
+            document.getElementById('edit_early_pay_amount').value = parseFloat(opt.getAttribute('data-early') || '0').toFixed(2);
+            document.getElementById('edit_normal_pay_amount').value = parseFloat(opt.getAttribute('data-normal') || '0').toFixed(2);
+            document.getElementById('edit_service_cut_amount').value = parseFloat(opt.getAttribute('data-cut') || '0').toFixed(2);
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPackages().then(() => {
+                document.getElementById('add_package_select')?.addEventListener('change', applyPackageToAdd);
+                document.getElementById('edit_package_select')?.addEventListener('change', applyPackageToEdit);
+            });
+        });
+        // Funcionalidad de Búsqueda
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const filter = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#customersTable tbody tr');
+            
+            rows.forEach(row => {
+                const subscriber = row.cells[0].textContent.toLowerCase();
+                const name = row.cells[1].textContent.toLowerCase();
+                if (subscriber.includes(filter) || name.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+
+        // Funcionalidad de Ordenamiento
+        document.querySelectorAll('th[data-sort]').forEach(header => {
+            header.addEventListener('click', () => {
+                const table = header.closest('table');
+                const tbody = table.querySelector('tbody');
+                const index = Number(header.getAttribute('data-sort'));
+                const currentDir = header.getAttribute('data-sort-dir') || 'desc';
+                const nextDir = currentDir === 'asc' ? 'desc' : 'asc';
+                
+                // Limpiar otros headers
+                table.querySelectorAll('th').forEach(th => {
+                    th.classList.remove('sort-asc', 'sort-desc');
+                    th.removeAttribute('data-sort-dir');
+                    const icon = th.querySelector('.sort-icon');
+                    if (icon) icon.classList.remove('active');
+                });
+                
+                header.setAttribute('data-sort-dir', nextDir);
+                header.classList.add(nextDir === 'asc' ? 'sort-asc' : 'sort-desc');
+                const activeIcon = header.querySelector('.sort-icon');
+                if (activeIcon) activeIcon.classList.add('active');
+
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                const sortedRows = rows.sort((a, b) => {
+                    const aCell = a.cells[index];
+                    const bCell = b.cells[index];
+                    const aText = (aCell?.getAttribute('data-sort-value') || aCell?.textContent || '').trim();
+                    const bText = (bCell?.getAttribute('data-sort-value') || bCell?.textContent || '').trim();
+                    
+                    const aDate = /^\d{4}-\d{2}-\d{2}$/.test(aText) ? Date.parse(`${aText}T00:00:00`) : NaN;
+                    const bDate = /^\d{4}-\d{2}-\d{2}$/.test(bText) ? Date.parse(`${bText}T00:00:00`) : NaN;
+
+                    if (!Number.isNaN(aDate) && !Number.isNaN(bDate)) {
+                        return nextDir === 'asc' ? aDate - bDate : bDate - aDate;
+                    }
+                    
+                    // Intentar comparar como número si es posible
+                    const aNum = parseFloat(aText);
+                    const bNum = parseFloat(bText);
+                    
+                    if (!isNaN(aNum) && !isNaN(bNum)) {
+                        return nextDir === 'asc' ? aNum - bNum : bNum - aNum;
+                    }
+                    
+                    return nextDir === 'asc'
+                        ? aText.localeCompare(bText, 'es', { numeric: true, sensitivity: 'base' })
+                        : bText.localeCompare(aText, 'es', { numeric: true, sensitivity: 'base' });
+                });
+                
+                tbody.append(...sortedRows);
+            });
+        });
+
+        // Cargar datos en modal de edición
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.getAttribute('data-id');
+                let customer = null;
+                try {
+                    const response = await fetch(`/customer/${id}`);
+                    if (!response.ok) throw new Error('No se pudo cargar el cliente');
+                    customer = await response.json();
+                } catch (e) {
+                    alert('No se pudieron cargar los datos del cliente. Intenta recargar la página.');
+                    return;
+                }
+
+                document.getElementById('editForm').action = `/edit-customer/${id}`;
+                document.getElementById('edit_subscriber').value = customer.subscriber_number || '';
+                document.getElementById('edit_name').value = customer.name;
+                document.getElementById('edit_phone').value = customer.phone;
+                document.getElementById('edit_early_pay').value = customer.early_pay_date;
+                document.getElementById('edit_preferred_payment_day').value = customer.preferred_payment_day || parseInt((customer.early_pay_date || '').split('-')[2] || '1', 10);
+                document.getElementById('edit_early_pay_amount').value = customer.early_pay_amount || '';
+                document.getElementById('edit_normal_pay_amount').value = customer.normal_pay_amount || '';
+                document.getElementById('edit_service_cut_amount').value = customer.service_cut_amount || '';
+                const pkgSel = document.getElementById('edit_package_select');
+                if (pkgSel) {
+                    if (pkgSel.options.length <= 1) {
+                        await loadPackages();
+                    }
+                    pkgSel.value = customer.package_id || '';
+                }
+                document.getElementById('edit_send_notifications').checked = !(customer.send_notifications === 0 || customer.send_notifications === '0');
+            });
+        });
+
+        // Toggle envío automático inline
+        document.addEventListener('change', async (e) => {
+            if (e.target.classList.contains('toggle-auto')) {
+                const id = e.target.getAttribute('data-id');
+                const enabled = e.target.checked ? '1' : '0';
+                try {
+                    await fetch(`/toggle-customer-notifications/${id}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `enabled=${enabled}`
+                    });
+                    const cell = e.target.closest('td');
+                    if (cell) cell.setAttribute('data-sort-value', enabled);
+                } catch (err) {}
+            }
+        });
+    </script>
+</body>
+</html>
